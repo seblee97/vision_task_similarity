@@ -74,7 +74,7 @@ class RamaConfigTemplate:
     base_template = config_template.Template(
         fields=[
             config_field.Field(name=constants.SEED, types=[int]),
-            config_field.Field(name=constants.GPU_ID, types=[bool]),
+            config_field.Field(name=constants.GPU_ID, types=[int, type(None)]),
         ],
         nested_templates=[_tasks_template, _training_template, _network_template],
     )
