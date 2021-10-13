@@ -1,5 +1,5 @@
 seed: 0
-use_gpu: True
+gpu_id: # empty for cpu
 
 tasks:
     indices:
