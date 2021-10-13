@@ -1,0 +1,20 @@
+seed: 0
+use_gpu: True
+
+tasks:
+    indices:
+        - [0, 5]
+        - [2, 7]
+    mixing: [1, 0.5]
+
+training:
+    total_epochs: 100
+    switch_epoch: 50
+    learning_rate: 0.01
+    batch_size: 1
+
+network:
+    input_dimension: 1024
+    hidden_dimension: 8
+    output_dimension: 1
+    nonlinearity: relu
