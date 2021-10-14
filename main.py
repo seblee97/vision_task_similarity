@@ -64,4 +64,5 @@ if __name__ == "__main__":
             config_path=args.config_path,
             checkpoint_paths=checkpoint_paths,
             run_methods=["train"],
+            stochastic_packages=["numpy", "torch", "random"],
         )
