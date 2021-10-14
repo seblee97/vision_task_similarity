@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List, Union
 
 import constants
@@ -52,7 +53,7 @@ class FashionMNIST:
     )
 
     FASHION_MNIST_TRAIN = torchvision.datasets.FashionMNIST(
-        root=DATA_PATH, transform=ALL_TRANSFORMS
+        root=DATA_PATH, transform=ALL_TRANSFORMS, download=not os.path.isdir(DATA_PATH)
     )
     FASHION_MNIST_TEST = torchvision.datasets.FashionMNIST(
         root=DATA_PATH, transform=ALL_TRANSFORMS, train=False
