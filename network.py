@@ -62,10 +62,19 @@ class TwoLayerRegressionNetwork(nn.Module):
 
         return y
 
-    def forward(self, x):
+    def input_to_hidden(self, x):
         x = x.reshape(x.shape[0], -1)
-        x = self._activation(self._layer(x))
+        return self._layer(x)
 
-        y = self._heads[self._task](x)
+    def activate(self, x):
+        return self._activation(x)
+
+    def hidden_to_output(self, x, head_index: int):
+        return self._heads[head_index](x)
+
+    def forward(self, x):
+        x = self.input_to_hidden(x)
+        x = self.activate(x)
+        y = self.hidden_to_output(x, self._task)
 
         return y
