@@ -33,3 +33,5 @@ LOSS = "loss"
 SELF_OVERLAP = "self_overlap"
 RESULTS = "results"
 PARALLEL = "parallel"
+NODE_NORM_ENTROPY = "node_norm_entropy"
+EPS = 0.000001
