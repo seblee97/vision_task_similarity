@@ -1,4 +1,5 @@
 import copy
+from typing import Dict
 
 import constants
 import dataset
@@ -38,6 +39,12 @@ class Runner(base_runner.BaseRunner):
 
         columns.extend(
             [f"{constants.SELF_OVERLAP}_{i}" for i in range(self._hidden_dimension)]
+        )
+        columns.extend(
+            [f"{constants.NODE_FISCHER}_{0}_{i}" for i in range(self._hidden_dimension)]
+        )
+        columns.extend(
+            [f"{constants.NODE_FISCHER}_{1}_{i}" for i in range(self._hidden_dimension)]
         )
 
         return columns
@@ -88,44 +95,96 @@ class Runner(base_runner.BaseRunner):
 
     def train(self):
 
+        self._pre_train_logging()
+
         for e in range(self._first_task_epochs):
             self._train_test_loop(epoch=e, task_index=0)
 
         for e in range(self._second_task_epochs):
             self._train_test_loop(epoch=e, task_index=1)
 
-    def _train_test_loop(self, epoch: int, task_index: int):
+    def _pre_train_logging(self):
+        node_norms = self._compute_node_norms()
+        node_norm_entropy = self._compute_norms_entropy(node_norms=node_norms)
 
-        self._log_overlaps(epoch=epoch)
+        node_fischers_0 = self._compute_node_fischers(task_index=0)
+        node_fischers_1 = self._compute_node_fischers(task_index=1)
+
+        base_logging_dict = {constants.NODE_NORM_ENTROPY: node_norm_entropy}
+
+        overlap_logging_dict = {
+            f"{constants.SELF_OVERLAP}_{i}": norm for i, norm in enumerate(node_norms)
+        }
+
+        fischer_0_logging_dict = {
+            f"{constants.NODE_FISCHER}_{0}_{i}": fischer
+            for i, fischer in enumerate(node_fischers_0)
+        }
+
+        fischer_1_logging_dict = {
+            f"{constants.NODE_FISCHER}_{1}_{i}": fischer
+            for i, fischer in enumerate(node_fischers_1)
+        }
+
+        logging_dict = {
+            **base_logging_dict,
+            **overlap_logging_dict,
+            **fischer_0_logging_dict,
+            **fischer_1_logging_dict,
+        }
+
+        self._epoch_log(logging_dict=logging_dict, epoch=0)
+
+    def _train_test_loop(self, epoch: int, task_index: int):
 
         train_epoch_loss = self._train_loop(task_index=task_index)
 
         test_loss_0, test_accuracy_0 = self._test_loop(task_index=0)
         test_loss_1, test_accuracy_1 = self._test_loop(task_index=1)
 
-        self._data_logger.write_scalar(
-            tag=constants.EPOCH_LOSS, step=epoch, scalar=train_epoch_loss
-        )
-        self._data_logger.write_scalar(
-            tag=f"{constants.TEST}_{constants.LOSS}_0", step=epoch, scalar=test_loss_0
-        )
-        self._data_logger.write_scalar(
-            tag=f"{constants.TEST}_{constants.LOSS}_1", step=epoch, scalar=test_loss_1
-        )
-        self._data_logger.write_scalar(
-            tag=f"{constants.TEST}_{constants.ACCURACY}_0",
-            step=epoch,
-            scalar=test_accuracy_0,
-        )
-        self._data_logger.write_scalar(
-            tag=f"{constants.TEST}_{constants.ACCURACY}_1",
-            step=epoch,
-            scalar=test_accuracy_1,
-        )
+        node_norms = self._compute_node_norms()
+        node_norm_entropy = self._compute_norms_entropy(node_norms=node_norms)
+        node_fischers_0 = self._compute_node_fischers(task_index=0)
+        node_fischers_1 = self._compute_node_fischers(task_index=1)
 
+        base_logging_dict = {
+            constants.EPOCH_LOSS: train_epoch_loss,
+            f"{constants.TEST}_{constants.LOSS}_0": test_loss_0,
+            f"{constants.TEST}_{constants.LOSS}_1": test_loss_1,
+            f"{constants.TEST}_{constants.ACCURACY}_0": test_accuracy_0,
+            f"{constants.TEST}_{constants.ACCURACY}_1": test_accuracy_1,
+            constants.NODE_NORM_ENTROPY: node_norm_entropy,
+        }
+
+        overlap_logging_dict = {
+            f"{constants.SELF_OVERLAP}_{i}": norm for i, norm in enumerate(node_norms)
+        }
+
+        fischer_0_logging_dict = {
+            f"{constants.NODE_FISCHER}_{0}_{i}": fischer
+            for i, fischer in enumerate(node_fischers_0)
+        }
+
+        fischer_1_logging_dict = {
+            f"{constants.NODE_FISCHER}_{1}_{i}": fischer
+            for i, fischer in enumerate(node_fischers_1)
+        }
+
+        logging_dict = {
+            **base_logging_dict,
+            **overlap_logging_dict,
+            **fischer_0_logging_dict,
+            **fischer_1_logging_dict,
+        }
+
+        self._epoch_log(logging_dict=logging_dict, epoch=epoch)
         self._logger.info(f"Epoch {epoch + 1} loss: {train_epoch_loss}")
 
         self._data_logger.checkpoint()
+
+    def _epoch_log(self, logging_dict: Dict[str, float], epoch: int):
+        for tag, scalar in logging_dict.items():
+            self._data_logger.write_scalar(tag=tag, step=epoch, scalar=scalar)
 
     def _train_loop(self, task_index: int):
 
@@ -164,7 +223,7 @@ class Runner(base_runner.BaseRunner):
 
         return epoch_loss / size, correct_instances / size
 
-    def _log_norms_entropy(self, epoch: int, node_norms: np.ndarray) -> None:
+    def _compute_norms_entropy(self, node_norms: np.ndarray) -> float:
         """Compute and log 'entropy' over node norms.
 
         This pseudo-entropy is computed by:
@@ -175,6 +234,9 @@ class Runner(base_runner.BaseRunner):
         Args:
             epoch: epoch count (for logging).
             node_norms: magnitudes of hidden units.
+
+        Returns:
+            pseudo_entropy: pseudo measure of node norm entropy.
         """
         normalised_norms = node_norms / np.max(node_norms)
         binned_norms, _ = np.histogram(normalised_norms)
@@ -182,17 +244,33 @@ class Runner(base_runner.BaseRunner):
         pseudo_entropy = -1 * np.sum(
             [(d + constants.EPS) * np.log(d + constants.EPS) for d in dist]
         )
-        self._data_logger.write_scalar(
-            tag=constants.NODE_NORM_ENTROPY, step=epoch, scalar=pseudo_entropy
-        )
+        return pseudo_entropy
 
-    def _log_overlaps(self, epoch: int) -> None:
+    def _compute_node_norms(self) -> None:
         network_copy = copy.deepcopy(self._network)
         layer = network_copy.layer_weights
         sel_sim = torch.mm(layer, layer.t()).numpy() / self._input_dimension
         norms = np.diagonal(sel_sim)
-        for i, o in enumerate(norms):
-            self._data_logger.write_scalar(
-                tag=f"{constants.SELF_OVERLAP}_{i}", step=epoch, scalar=o
+        return norms
+
+    def _compute_node_fischers(self, task_index: int) -> None:
+        loader = self._test_dataloaders[task_index]
+        size = len(loader.dataset)
+
+        node_fischers = [0 for _ in range(self._hidden_dimension)]
+
+        for batch, (x, y) in enumerate(loader):
+            pre_activation = self._network.input_to_hidden(x=x)
+            post_activation = self._network.activate(x=pre_activation)
+            prediction = self._network.hidden_to_output(
+                x=post_activation, head_index=task_index
             )
-        self._log_norms_entropy(epoch=epoch, node_norms=norms)
+
+            loss = self._loss_function(prediction.flatten(), y.to(torch.float))
+
+            derivative = torch.autograd.grad(loss, post_activation)[0]
+
+            for node_index, node_derivative in enumerate(derivative):
+                node_fischers[node_index] += node_derivative.detach() ** 2 / size
+
+        return node_fischers
