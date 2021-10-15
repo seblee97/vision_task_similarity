@@ -163,11 +163,35 @@ class Runner(base_runner.BaseRunner):
 
         return epoch_loss / size, correct_instances / size
 
-    def _log_overlaps(self, epoch: int):
+    def _log_norms_entropy(self, epoch: int, node_norms: np.ndarray) -> None:
+        """Compute and log 'entropy' over node norms.
+
+        This pseudo-entropy is computed by:
+            - normalising the array of node norms
+            - binning these normalised values
+            - computing entropy over this binned distribution
+
+        Args:
+            epoch: epoch count (for logging).
+            node_norms: magnitudes of hidden units.
+        """
+        normalised_norms = node_norms / np.max(node_norms)
+        binned_norms, _ = np.histogram(normalised_norms)
+        dist = binned_norms / np.max(binned_norms)
+        pseudo_entropy = -1 * np.sum(
+            [(d + constants.EPS) * np.log(d + constants.EPS) for d in dist]
+        )
+        self._data_logger.write_scalar(
+            tag=constants.NODE_NORM_ENTROPY, step=epoch, scalar=pseudo_entropy
+        )
+
+    def _log_overlaps(self, epoch: int) -> None:
         network_copy = copy.deepcopy(self._network)
         layer = network_copy.layer_weights
         sel_sim = torch.mm(layer, layer.t()).numpy() / self._input_dimension
-        for i, o in enumerate(np.diagonal(sel_sim)):
+        norms = np.diagonal(sel_sim)
+        for i, o in enumerate(norms):
             self._data_logger.write_scalar(
                 tag=f"{constants.SELF_OVERLAP}_{i}", step=epoch, scalar=o
             )
+        self._log_norms_entropy(epoch=epoch, node_norms=norms)
