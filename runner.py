@@ -271,6 +271,6 @@ class Runner(base_runner.BaseRunner):
             derivative = torch.autograd.grad(loss, post_activation)[0]
 
             for node_index, node_derivative in enumerate(derivative[0]):
-                node_fischers[node_index] += node_derivative.detach() ** 2 / size
+                node_fischers[node_index] += node_derivative.detach().item() ** 2 / size
 
         return node_fischers
