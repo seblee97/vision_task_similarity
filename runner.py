@@ -33,6 +33,7 @@ class Runner(base_runner.BaseRunner):
             f"{constants.TEST}_{constants.LOSS}_1",
             f"{constants.TEST}_{constants.ACCURACY}_0",
             f"{constants.TEST}_{constants.ACCURACY}_1",
+            constants.NODE_NORM_ENTROPY,
         ]
 
         columns.extend(
