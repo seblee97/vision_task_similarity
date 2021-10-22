@@ -4,7 +4,7 @@ import os
 import constants
 import rama_config
 import runner
-from run_modes import parallel_run, single_run, utils
+from run_modes import parallel_run, serial_run, single_run, utils
 
 MAIN_FILE_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -66,3 +66,27 @@ if __name__ == "__main__":
             run_methods=["train", "post_process"],
             stochastic_packages=["numpy", "torch", "random"],
         )
+
+    elif args.mode == constants.SERIAL:
+
+        seeds = utils.process_seed_arguments(args.seeds)
+
+        checkpoint_paths = utils.setup_experiment(
+            mode="serial",
+            results_folder=results_folder,
+            config_path=args.config_path,
+            config_changes_path=args.config_changes,
+            seeds=seeds,
+        )
+
+        serial_run.serial_run(
+            runner_class=runner_class,
+            config_class=config_class,
+            config_path=args.config_path,
+            checkpoint_paths=checkpoint_paths,
+            run_methods=["train", "post_process"],
+            stochastic_packages=["numpy", "torch", "random"],
+        )
+
+    else:
+        raise ValueError(f"run mode {args.mode} not recognised.")
