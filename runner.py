@@ -274,3 +274,8 @@ class Runner(base_runner.BaseRunner):
                 node_fischers[node_index] += node_derivative.detach().item() ** 2 / size
 
         return node_fischers
+
+    def post_process(self) -> None:
+        """Solidify any data and make plots."""
+        self._plotter.load_data()
+        self._plotter.plot_learning_curves()
