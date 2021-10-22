@@ -71,10 +71,23 @@ class RamaConfigTemplate:
         level=[constants.NETWORK],
     )
 
+    _plotting_template = config_template.Template(
+        fields=[
+            config_field.Field(name=constants.XLABEL, types=[str]),
+            config_field.Field(name=constants.SMOOTHING, types=[int]),
+        ],
+        level=[constants.PLOTTING],
+    )
+
     base_template = config_template.Template(
         fields=[
             config_field.Field(name=constants.SEED, types=[int]),
             config_field.Field(name=constants.GPU_ID, types=[int, type(None)]),
         ],
-        nested_templates=[_tasks_template, _training_template, _network_template],
+        nested_templates=[
+            _tasks_template,
+            _training_template,
+            _network_template,
+            _plotting_template,
+        ],
     )
