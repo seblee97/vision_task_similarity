@@ -36,3 +36,6 @@ PARALLEL = "parallel"
 NODE_NORM_ENTROPY = "node_norm_entropy"
 EPS = 0.000001
 NODE_FISCHER = "node_fischer"
+SMOOTHING = "smoothing"
+XLABEL = "xlabel"
+PLOTTING = "plotting"
