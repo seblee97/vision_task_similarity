@@ -43,7 +43,7 @@ if __name__ == "__main__":
             config_class=config_class,
             config_path=args.config_path,
             checkpoint_path=single_checkpoint_path,
-            run_methods=["train"],
+            run_methods=["train", "post_process"],
         )
 
     elif args.mode == constants.PARALLEL:
@@ -63,6 +63,6 @@ if __name__ == "__main__":
             config_class=config_class,
             config_path=args.config_path,
             checkpoint_paths=checkpoint_paths,
-            run_methods=["train"],
+            run_methods=["train", "post_process"],
             stochastic_packages=["numpy", "torch", "random"],
         )
