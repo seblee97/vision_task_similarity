@@ -18,3 +18,7 @@ network:
     hidden_dimension: 8
     output_dimension: 1
     nonlinearity: relu
+
+plotting:
+    xlabel: epoch
+    smoothing: 3
