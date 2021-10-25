@@ -11,7 +11,7 @@ from run_modes import base_runner
 
 
 class Runner(base_runner.BaseRunner):
-    def __init__(self, config):
+    def __init__(self, config, unique_id: str = ""):
         self._first_task_epochs = config.switch_epoch
         self._second_task_epochs = config.total_epochs - config.switch_epoch
 
@@ -25,7 +25,7 @@ class Runner(base_runner.BaseRunner):
 
         self._loss_function = nn.MSELoss()
 
-        super().__init__(config=config)
+        super().__init__(config=config, unique_id=unique_id)
 
     def _get_data_columns(self):
         columns = [
