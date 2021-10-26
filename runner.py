@@ -257,6 +257,7 @@ class Runner(base_runner.BaseRunner):
         loader = self._test_dataloaders[task_index]
         size = len(loader.dataset)
 
+        self._network.switch(new_task_index=task_index)
         node_fischers = [0 for _ in range(self._hidden_dimension)]
 
         for batch, (x, y) in enumerate(loader):
