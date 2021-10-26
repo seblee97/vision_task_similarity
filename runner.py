@@ -196,9 +196,9 @@ class Runner(base_runner.BaseRunner):
         epoch_loss = 0
 
         for batch, (x, y) in enumerate(loader):
+            self._optimiser.zero_grad()
             prediction = self._network(x)
             loss = self._loss_function(prediction.flatten(), y.to(torch.float))
-            self._optimiser.zero_grad()
             loss.backward()
             self._optimiser.step()
             epoch_loss += loss.item()
