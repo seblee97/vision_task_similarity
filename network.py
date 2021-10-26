@@ -55,10 +55,9 @@ class TwoLayerRegressionNetwork(nn.Module):
             param.requires_grad = True
 
     def test_forward(self, x, head_index: int):
-        x = x.reshape(x.shape[0], -1)
-        x = self._activation(self._layer(x))
-
-        y = self._heads[head_index](x)
+        x = self.input_to_hidden(x)
+        x = self.activate(x)
+        y = self.hidden_to_output(x, head_index)
 
         return y
 
