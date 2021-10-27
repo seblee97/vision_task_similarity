@@ -142,6 +142,8 @@ class Runner(base_runner.BaseRunner):
         test_loss_0, test_accuracy_0 = self._test_loop(task_index=0)
         test_loss_1, test_accuracy_1 = self._test_loop(task_index=1)
 
+        print(test_accuracy_0, test_accuracy_1)
+
         node_norms = self._compute_node_norms()
         node_norm_entropy = self._compute_norms_entropy(node_norms=node_norms)
         node_fischers_0 = self._compute_node_fischers(task_index=0)
@@ -279,4 +281,18 @@ class Runner(base_runner.BaseRunner):
     def post_process(self) -> None:
         """Solidify any data and make plots."""
         self._plotter.load_data()
+        self._plotter.add_tag_groups(self._get_tag_groups())
         self._plotter.plot_learning_curves()
+
+    def _get_tag_groups(self):
+        groups = [
+            (
+                f"{constants.NODE_FISCHER}_{i}",
+                [
+                    f"{constants.NODE_FISCHER}_{0}_{i}",
+                    f"{constants.NODE_FISCHER}_{1}_{i}",
+                ],
+            )
+            for i in range(self._hidden_dimension)
+        ]
+        return groups
