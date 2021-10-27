@@ -142,8 +142,6 @@ class Runner(base_runner.BaseRunner):
         test_loss_0, test_accuracy_0 = self._test_loop(task_index=0)
         test_loss_1, test_accuracy_1 = self._test_loop(task_index=1)
 
-        print(test_accuracy_0, test_accuracy_1)
-
         node_norms = self._compute_node_norms()
         node_norm_entropy = self._compute_norms_entropy(node_norms=node_norms)
         node_fischers_0 = self._compute_node_fischers(task_index=0)
