@@ -1,12 +1,10 @@
 import copy
 from typing import Dict
 
-import constants
-import dataset
-import network
 import numpy as np
 import torch
 import torch.nn as nn
+from rama import constants, dataset, network
 from run_modes import base_runner
 
 

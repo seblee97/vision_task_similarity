@@ -1,8 +1,8 @@
 from typing import Callable
 
-import constants
 import torch.nn as nn
 import torch.nn.functional as F
+from rama import constants
 
 
 class TwoLayerRegressionNetwork(nn.Module):

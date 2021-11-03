@@ -1,9 +1,9 @@
 import os
 from typing import Dict, List, Union
 
-import constants
 import torch
 import torchvision
+from rama import constants
 
 DATA_PATH = constants.FMNIST_PATH
 

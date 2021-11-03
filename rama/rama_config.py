@@ -1,7 +1,7 @@
 from typing import Dict, List, Union
 
-import rama_config_template
 from config_manager import base_configuration
+from rama import rama_config_template
 
 
 class RamaConfig(base_configuration.BaseConfiguration):

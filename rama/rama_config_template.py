@@ -1,5 +1,5 @@
-import constants
 from config_manager import config_field, config_template
+from rama import constants
 
 
 class RamaConfigTemplate:
