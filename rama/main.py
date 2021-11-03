@@ -98,6 +98,7 @@ if __name__ == "__main__":
                 checkpoint_paths=checkpoint_paths,
                 run_methods=["train", "post_process"],
                 stochastic_packages=["numpy", "torch", "random"],
+                env_name="rama",
             )
 
     else:
