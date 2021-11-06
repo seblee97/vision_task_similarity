@@ -99,6 +99,7 @@ if __name__ == "__main__":
                 run_methods=["train", "post_process"],
                 stochastic_packages=["numpy", "torch", "random"],
                 env_name="rama",
+                scheduler="univa",
             )
 
     else:
