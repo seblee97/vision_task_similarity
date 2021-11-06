@@ -1,5 +1,5 @@
 import copy
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import torch
@@ -44,6 +44,18 @@ class Runner(base_runner.BaseRunner):
         columns.extend(
             [f"{constants.NODE_FISCHER}_{1}_{i}" for i in range(self._hidden_dimension)]
         )
+        columns.extend(
+            [
+                f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}"
+                for i in range(self._hidden_dimension)
+            ]
+        )
+        columns.extend(
+            [
+                f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}"
+                for i in range(self._hidden_dimension)
+            ]
+        )
 
         return columns
 
@@ -76,6 +88,7 @@ class Runner(base_runner.BaseRunner):
             output_dim=config.output_dimension,
             nonlinearity=config.nonlinearity,
             num_heads=len(config.indices),
+            biases=config.biases,
         )
         optimiser = torch.optim.SGD(params=net.parameters(), lr=config.learning_rate)
         return net, optimiser
@@ -108,6 +121,9 @@ class Runner(base_runner.BaseRunner):
         node_fischers_0 = self._compute_node_fischers(task_index=0)
         node_fischers_1 = self._compute_node_fischers(task_index=1)
 
+        second_layer_derivatives_0 = self._second_layer_derivative(task_index=0)
+        second_layer_derivatives_1 = self._second_layer_derivative(task_index=1)
+
         base_logging_dict = {constants.NODE_NORM_ENTROPY: node_norm_entropy}
 
         overlap_logging_dict = {
@@ -124,11 +140,23 @@ class Runner(base_runner.BaseRunner):
             for i, fischer in enumerate(node_fischers_1)
         }
 
+        second_layer_derivatives_0_logging_dict = {
+            f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}": derivative
+            for i, derivative in enumerate(second_layer_derivatives_0)
+        }
+
+        second_layer_derivatives_1_logging_dict = {
+            f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}": derivative
+            for i, derivative in enumerate(second_layer_derivatives_1)
+        }
+
         logging_dict = {
             **base_logging_dict,
             **overlap_logging_dict,
             **fischer_0_logging_dict,
             **fischer_1_logging_dict,
+            **second_layer_derivatives_0_logging_dict,
+            **second_layer_derivatives_1_logging_dict,
         }
 
         self._epoch_log(logging_dict=logging_dict, epoch=0)
@@ -144,6 +172,8 @@ class Runner(base_runner.BaseRunner):
         node_norm_entropy = self._compute_norms_entropy(node_norms=node_norms)
         node_fischers_0 = self._compute_node_fischers(task_index=0)
         node_fischers_1 = self._compute_node_fischers(task_index=1)
+        second_layer_derivatives_0 = self._second_layer_derivative(task_index=0)
+        second_layer_derivatives_1 = self._second_layer_derivative(task_index=1)
 
         base_logging_dict = {
             constants.EPOCH_LOSS: train_epoch_loss,
@@ -168,11 +198,23 @@ class Runner(base_runner.BaseRunner):
             for i, fischer in enumerate(node_fischers_1)
         }
 
+        second_layer_derivatives_0_logging_dict = {
+            f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}": derivative
+            for i, derivative in enumerate(second_layer_derivatives_0)
+        }
+
+        second_layer_derivatives_1_logging_dict = {
+            f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}": derivative
+            for i, derivative in enumerate(second_layer_derivatives_1)
+        }
+
         logging_dict = {
             **base_logging_dict,
             **overlap_logging_dict,
             **fischer_0_logging_dict,
             **fischer_1_logging_dict,
+            **second_layer_derivatives_0_logging_dict,
+            **second_layer_derivatives_1_logging_dict,
         }
 
         self._epoch_log(logging_dict=logging_dict, epoch=epoch)
@@ -251,7 +293,7 @@ class Runner(base_runner.BaseRunner):
         norms = np.diagonal(sel_sim)
         return norms
 
-    def _compute_node_fischers(self, task_index: int) -> None:
+    def _compute_node_fischers(self, task_index: int) -> List:
         loader = self._test_dataloaders[task_index]
         size = len(loader.dataset)
 
@@ -274,6 +316,27 @@ class Runner(base_runner.BaseRunner):
 
         return node_fischers
 
+    def _second_layer_derivative(self, task_index: int) -> List:
+        loader = self._test_dataloaders[task_index]
+        size = len(loader.dataset)
+
+        self._network.switch(new_task_index=task_index)
+        second_layer_derivatives = [0 for _ in range(self._hidden_dimension)]
+
+        for batch, (x, y) in enumerate(loader):
+            prediction = self._network(x)
+            loss = self._loss_function(prediction.flatten(), y.to(torch.float))
+            loss.backward()
+
+            second_layer_derivative = [
+                p.grad for p in self._network._heads[task_index].parameters()
+            ][0][0]
+
+            for i, d in enumerate(second_layer_derivative):
+                second_layer_derivatives[i] += d.data.item() / size
+
+        return second_layer_derivatives
+
     def post_process(self) -> None:
         """Solidify any data and make plots."""
         self._plotter.load_data()
@@ -291,4 +354,16 @@ class Runner(base_runner.BaseRunner):
             )
             for i in range(self._hidden_dimension)
         ]
+        groups.extend(
+            [
+                (
+                    f"{constants.SECOND_LAYER_DERIVATIVES}_{i}",
+                    [
+                        f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}",
+                        f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}",
+                    ],
+                )
+                for i in range(self._hidden_dimension)
+            ]
+        )
         return groups
