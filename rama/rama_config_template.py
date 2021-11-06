@@ -67,6 +67,7 @@ class RamaConfigTemplate:
                 types=[str],
                 requirements=[lambda x: x in [constants.RELU, constants.SIGMOID]],
             ),
+            config_field.Field(name=constants.BIASES, types=[bool]),
         ],
         level=[constants.NETWORK],
     )
