@@ -13,13 +13,14 @@ class TwoLayerRegressionNetwork(nn.Module):
         output_dim: int,
         nonlinearity: str,
         num_heads: int,
+        biases: bool,
     ):
 
         super().__init__()
 
-        self._layer = nn.Linear(input_dim, hidden_dim)
+        self._layer = nn.Linear(input_dim, hidden_dim, bias=biases)
         self._heads = nn.ModuleList(
-            [nn.Linear(hidden_dim, output_dim) for _ in range(num_heads)]
+            [nn.Linear(hidden_dim, output_dim, bias=biases) for _ in range(num_heads)]
         )
 
         self._activation = self._setup_activation(nonlinearity=nonlinearity)
