@@ -5,14 +5,6 @@ from run_modes import single_run
 runner_class = runner.Runner
 config_class = rama_config.RamaConfig
 
-single_run.single_run(
-    runner_class=runner_class,
-    config_class=config_class,
-    config_path="config.yaml",
-    checkpoint_path="log_exp",
-    run_methods=["train", "post_process"],
-)
-
 executor = submitit.AutoExecutor(folder="log_exp")
 
 executor.update_parameters(
