@@ -112,17 +112,22 @@ class FashionMNISTSplitter:
         return train_dataloader, test_dataloader
 
     @classmethod
-    def get_mapping(cls, index_1: int, index_2: int):
+    def get_mapping(cls, index_1: int, index_2: int, label_1: int, label_2: int):
         target_mapping = {
-            index_1: -1.0,
-            index_2: 1.0,
+            index_1: label_1,
+            index_2: label_2,
         }
-        label_mapping = {index_1: -1, index_2: 1}
+        label_mapping = {index_1: label_1, index_2: label_2}
         return target_mapping, label_mapping
 
     @classmethod
     def get_mixed_dataset(
-        cls, indices_1: List[int], indices_2: List[int], mixing: Union[float, int]
+        cls,
+        indices_1: List[int],
+        indices_2: List[int],
+        mixing: Union[float, int],
+        label_1: int,
+        label_2: int,
     ):
         train_set_1, test_set_1 = cls.get_binary_classification_dataset(
             indices_1[0], indices_1[1]
@@ -131,8 +136,12 @@ class FashionMNISTSplitter:
             indices_2[0], indices_2[1]
         )
 
-        mapping_1, _ = cls.get_mapping(index_1=indices_1[0], index_2=indices_1[1])
-        mapping_2, _ = cls.get_mapping(index_1=indices_2[0], index_2=indices_2[1])
+        mapping_1, _ = cls.get_mapping(
+            index_1=indices_1[0], index_2=indices_1[1], label_1=label_1, label_2=label_2
+        )
+        mapping_2, _ = cls.get_mapping(
+            index_1=indices_2[0], index_2=indices_2[1], label_1=label_1, label_2=label_2
+        )
 
         mapping = {**mapping_1, **mapping_2}
 
@@ -153,11 +162,17 @@ class FashionMNISTSplitter:
         indices_1: List[int],
         indices_2: List[int],
         mixing: Union[float, int],
+        label_1: int,
+        label_2: int,
         batch_size: int,
         shuffle: bool,
     ):
         mixed_train_set, mixed_test_set = cls.get_mixed_dataset(
-            indices_1=indices_1, indices_2=indices_2, mixing=mixing
+            indices_1=indices_1,
+            indices_2=indices_2,
+            mixing=mixing,
+            label_1=label_1,
+            label_2=label_2,
         )
         mixed_train_dataloader = torch.utils.data.DataLoader(
             mixed_train_set, batch_size=batch_size, shuffle=shuffle
