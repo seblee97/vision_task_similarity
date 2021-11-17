@@ -1,9 +1,11 @@
 import copy
+import itertools
 from typing import Dict, List
 
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from rama import constants, dataset, network
 from run_modes import base_runner
 
@@ -15,13 +17,15 @@ class Runner(base_runner.BaseRunner):
 
         self._input_dimension = config.input_dimension
         self._hidden_dimension = config.hidden_dimension
+        self._output_dimension = config.output_dimension
 
         self._network, self._optimiser = self._setup_network(config=config)
         self._train_dataloaders, self._test_dataloaders = self._setup_data(
             config=config
         )
 
-        self._loss_function = nn.MSELoss()
+        self._loss_function_type = config.loss_fn
+        self._loss_function = self._setup_loss_function(config=config)
 
         super().__init__(config=config, unique_id=unique_id)
 
@@ -46,14 +50,18 @@ class Runner(base_runner.BaseRunner):
         )
         columns.extend(
             [
-                f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}"
-                for i in range(self._hidden_dimension)
+                f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{j}_{i}"
+                for i, j in itertools.product(
+                    range(self._hidden_dimension), range(self._output_dimension)
+                )
             ]
         )
         columns.extend(
             [
-                f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}"
-                for i in range(self._hidden_dimension)
+                f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{j}_{i}"
+                for i, j in itertools.product(
+                    range(self._hidden_dimension), range(self._output_dimension)
+                )
             ]
         )
 
@@ -65,6 +73,8 @@ class Runner(base_runner.BaseRunner):
             config.indices[0],
             config.indices[1],
             mixing=config.mixing[0],
+            label_1=config.labels[0],
+            label_2=config.labels[1],
             batch_size=config.batch_size,
             shuffle=True,
         )
@@ -72,6 +82,8 @@ class Runner(base_runner.BaseRunner):
             config.indices[0],
             config.indices[1],
             mixing=config.mixing[1],
+            label_1=config.labels[0],
+            label_2=config.labels[1],
             batch_size=config.batch_size,
             shuffle=True,
         )
@@ -93,6 +105,13 @@ class Runner(base_runner.BaseRunner):
         optimiser = torch.optim.SGD(params=net.parameters(), lr=config.learning_rate)
         return net, optimiser
 
+    def _setup_loss_function(self, config):
+        if config.loss_fn == constants.MSE:
+            loss_fn = nn.MSELoss()
+        elif config.loss_fn == constants.CROSS_ENTROPY:
+            loss_fn = nn.CrossEntropyLoss()
+        return loss_fn
+
     def _obtain_target_mappings(self, config):
         target_mappings = {}
         label_mappings = {}
@@ -103,6 +122,20 @@ class Runner(base_runner.BaseRunner):
             target_mappings = {**target_mappings, **target_mapping}
             label_mappings = {**label_mappings, **label_mapping}
         return target_mappings, label_mappings
+
+    def _compute_loss(self, prediction, target):
+        if self._loss_function_type == constants.MSE:
+            return self._loss_function(prediction.flatten(), target.to(torch.float))
+        elif self._loss_function_type == constants.CROSS_ENTROPY:
+            return self._loss_function(prediction, target.to(torch.long))
+
+    def _compute_correct(self, prediction, target):
+        if self._loss_function_type == constants.MSE:
+            return (torch.sign(prediction) == target).item()
+        elif self._loss_function_type == constants.CROSS_ENTROPY:
+            softmax_prediction = F.softmax(prediction, dim=1)
+            class_prediction = torch.argmax(softmax_prediction, dim=1)
+            return sum(class_prediction == target).item()
 
     def train(self):
 
@@ -141,13 +174,13 @@ class Runner(base_runner.BaseRunner):
         }
 
         second_layer_derivatives_0_logging_dict = {
-            f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}": derivative
-            for i, derivative in enumerate(second_layer_derivatives_0)
+            f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}_{j}": derivative
+            for (i, j), derivative in np.ndenumerate(second_layer_derivatives_0)
         }
 
         second_layer_derivatives_1_logging_dict = {
-            f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}": derivative
-            for i, derivative in enumerate(second_layer_derivatives_1)
+            f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}_{j}": derivative
+            for (i, j), derivative in np.ndenumerate(second_layer_derivatives_1)
         }
 
         logging_dict = {
@@ -199,13 +232,13 @@ class Runner(base_runner.BaseRunner):
         }
 
         second_layer_derivatives_0_logging_dict = {
-            f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}": derivative
-            for i, derivative in enumerate(second_layer_derivatives_0)
+            f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}_{j}": derivative
+            for (i, j), derivative in np.ndenumerate(second_layer_derivatives_0)
         }
 
         second_layer_derivatives_1_logging_dict = {
-            f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}": derivative
-            for i, derivative in enumerate(second_layer_derivatives_1)
+            f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}_{j}": derivative
+            for (i, j), derivative in np.ndenumerate(second_layer_derivatives_1)
         }
 
         logging_dict = {
@@ -238,7 +271,7 @@ class Runner(base_runner.BaseRunner):
         for batch, (x, y) in enumerate(loader):
             self._optimiser.zero_grad()
             prediction = self._network(x)
-            loss = self._loss_function(prediction.flatten(), y.to(torch.float))
+            loss = self._compute_loss(prediction, y)
             loss.backward()
             self._optimiser.step()
             epoch_loss += loss.item()
@@ -255,10 +288,11 @@ class Runner(base_runner.BaseRunner):
         with torch.no_grad():
             for batch, (x, y) in enumerate(loader):
                 prediction = self._network.test_forward(x=x, head_index=task_index)
-                loss = self._loss_function(prediction.flatten(), y)
+                loss = self._compute_loss(prediction, y)
 
                 epoch_loss += loss.item()
-                correct = (torch.sign(prediction) == y).item()
+
+                correct = self._compute_correct(prediction, y)
                 correct_instances += correct
 
         return epoch_loss / size, correct_instances / size
@@ -307,7 +341,7 @@ class Runner(base_runner.BaseRunner):
                 x=post_activation, head_index=task_index
             )
 
-            loss = self._loss_function(prediction.flatten(), y.to(torch.float))
+            loss = self._compute_loss(prediction, y)
 
             derivative = torch.autograd.grad(loss, post_activation)[0]
 
@@ -321,19 +355,25 @@ class Runner(base_runner.BaseRunner):
         size = len(loader.dataset)
 
         self._network.switch(new_task_index=task_index)
-        second_layer_derivatives = [0 for _ in range(self._hidden_dimension)]
+        second_layer_derivatives = [
+            [0 for i in range(self._hidden_dimension)]
+            for j in range(self._output_dimension)
+        ]
 
         for batch, (x, y) in enumerate(loader):
             prediction = self._network(x)
-            loss = self._loss_function(prediction.flatten(), y.to(torch.float))
+            loss = self._compute_loss(prediction, y)
             loss.backward()
 
             second_layer_derivative = [
                 p.grad for p in self._network._heads[task_index].parameters()
-            ][0][0]
+            ][0]
 
-            for i, d in enumerate(second_layer_derivative):
-                second_layer_derivatives[i] += d.data.item() / size
+            for i in range(self._output_dimension):
+                for j in range(self._hidden_dimension):
+                    second_layer_derivatives[i][j] += (
+                        second_layer_derivative[i][j].item() / size
+                    )
 
         return second_layer_derivatives
 
@@ -359,11 +399,13 @@ class Runner(base_runner.BaseRunner):
                 (
                     f"{constants.SECOND_LAYER_DERIVATIVES}_{i}",
                     [
-                        f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{i}",
-                        f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{i}",
+                        f"{constants.SECOND_LAYER_DERIVATIVES}_{0}_{j}_{i}",
+                        f"{constants.SECOND_LAYER_DERIVATIVES}_{1}_{j}_{i}",
                     ],
                 )
-                for i in range(self._hidden_dimension)
+                for i, j in itertools.product(
+                    range(self._hidden_dimension), range(self._output_dimension)
+                )
             ]
         )
         return groups
