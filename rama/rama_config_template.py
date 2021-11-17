@@ -20,6 +20,11 @@ class RamaConfigTemplate:
                 types=[list],
                 requirements=[lambda x: all([j >= 0 and j <= 1 for j in x])],
             ),
+            config_field.Field(
+                name=constants.LABELS,
+                types=[list],
+                requirements=[lambda x: all([isinstance(i, int) for i in x])],
+            ),
         ],
         # nested_templates=[_indices_template],
         level=[constants.TASKS],
@@ -40,6 +45,11 @@ class RamaConfigTemplate:
             ),
             config_field.Field(
                 name=constants.BATCH_SIZE, types=[int], requirements=[lambda x: x > 0]
+            ),
+            config_field.Field(
+                name=constants.LOSS_FN,
+                types=[str],
+                requirements=[lambda x: x in [constants.CROSS_ENTROPY, constants.MSE]],
             ),
         ],
         level=[constants.TRAINING],
