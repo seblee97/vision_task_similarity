@@ -5,6 +5,7 @@ tasks:
     indices:
         - [0, 5]
         - [2, 7]
+    labels: [0, 1]
     mixing: [1, 0.5]
 
 training:
@@ -12,6 +13,7 @@ training:
     switch_epoch: 3
     learning_rate: 0.01
     batch_size: 1
+    loss_fn: cross_entropy
 
 network:
     input_dimension: 1024
