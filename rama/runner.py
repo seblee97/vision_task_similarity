@@ -19,6 +19,8 @@ class Runner(base_runner.BaseRunner):
         self._hidden_dimension = config.hidden_dimension
         self._output_dimension = config.output_dimension
 
+        self._labels = config.labels
+
         self._network, self._optimiser = self._setup_network(config=config)
         self._train_dataloaders, self._test_dataloaders = self._setup_data(
             config=config
@@ -131,7 +133,10 @@ class Runner(base_runner.BaseRunner):
 
     def _compute_correct(self, prediction, target):
         if self._loss_function_type == constants.MSE:
-            return (torch.sign(prediction) == target).item()
+            if self._labels == [-1, 1]:
+                return (torch.sign(prediction) == target).item()
+            elif self._labels == [0, 1]:
+                return (prediction > 0.5 == target).item()
         elif self._loss_function_type == constants.CROSS_ENTROPY:
             softmax_prediction = F.softmax(prediction, dim=1)
             class_prediction = torch.argmax(softmax_prediction, dim=1)
