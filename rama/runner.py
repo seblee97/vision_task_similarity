@@ -1,5 +1,6 @@
 import copy
 import itertools
+import os
 from typing import Dict, List
 
 import numpy as np
@@ -14,6 +15,10 @@ class Runner(base_runner.BaseRunner):
     def __init__(self, config, unique_id: str = ""):
         self._first_task_epochs = config.switch_epoch
         self._second_task_epochs = config.total_epochs - config.switch_epoch
+
+        self._early_stopping = config.early_stopping
+        self._first_task_best_loss = np.inf
+        self._first_task_best_loss_index: int
 
         self._input_dimension = config.input_dimension
         self._hidden_dimension = config.hidden_dimension
@@ -149,8 +154,18 @@ class Runner(base_runner.BaseRunner):
         for e in range(self._first_task_epochs):
             self._train_test_loop(epoch=e, task_index=0)
 
-        for e in range(self._second_task_epochs):
-            self._train_test_loop(epoch=e, task_index=1)
+        if self._early_stopping:
+            self._network.load(
+                load_path=os.path.join(
+                    self._checkpoint_path,
+                    f"network_{self._first_task_best_loss_index}.pt",
+                )
+            )
+            for e in range(self._second_task_epochs):
+                self._train_test_loop(epoch=e, task_index=1)
+        else:
+            for e in range(self._second_task_epochs):
+                self._train_test_loop(epoch=e, task_index=1)
 
     def _pre_train_logging(self):
         node_norms = self._compute_node_norms()
@@ -212,6 +227,14 @@ class Runner(base_runner.BaseRunner):
         node_fischers_1 = self._compute_node_fischers(task_index=1)
         second_layer_derivatives_0 = self._second_layer_derivative(task_index=0)
         second_layer_derivatives_1 = self._second_layer_derivative(task_index=1)
+
+        if task_index == 0:
+            if self._early_stopping:
+                self._network.checkpoint(
+                    save_path=os.path.join(self._checkpoint_path, f"network_{epoch}.pt")
+                )
+                if test_loss_0 < self._first_task_best_loss:
+                    self._first_task_best_loss_index = epoch
 
         base_logging_dict = {
             constants.EPOCH_LOSS: train_epoch_loss,
