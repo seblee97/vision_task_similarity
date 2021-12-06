@@ -51,6 +51,7 @@ class RamaConfigTemplate:
                 types=[str],
                 requirements=[lambda x: x in [constants.CROSS_ENTROPY, constants.MSE]],
             ),
+            config_field.Field(name=constants.EARLY_STOPPING, types=[bool]),
         ],
         level=[constants.TRAINING],
     )
