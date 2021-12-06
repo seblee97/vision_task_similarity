@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
         seeds = utils.process_seed_arguments(args.seeds)
 
-        checkpoint_paths = utils.setup_experiment(
+        experiment_path, checkpoint_paths = utils.setup_experiment(
             mode="multi",
             results_folder=results_folder,
             config_path=args.config_path,
@@ -75,7 +75,7 @@ if __name__ == "__main__":
             parallel_run.parallel_run(
                 runner_class=runner_class,
                 config_class=config_class,
-                config_path=args.config_path,
+                config_path=os.path.join(experiment_path, "config.yaml"),
                 checkpoint_paths=checkpoint_paths,
                 run_methods=["train", "post_process"],
                 stochastic_packages=["numpy", "torch", "random"],
@@ -86,7 +86,7 @@ if __name__ == "__main__":
             serial_run.serial_run(
                 runner_class=runner_class,
                 config_class=config_class,
-                config_path=args.config_path,
+                config_path=os.path.join(experiment_path, "config.yaml"),
                 checkpoint_paths=checkpoint_paths,
                 run_methods=["train", "post_process"],
                 stochastic_packages=["numpy", "torch", "random"],
@@ -101,7 +101,7 @@ if __name__ == "__main__":
                 config_class_name=config_class_name,
                 config_module_name=config_module_name,
                 config_module_path=config_module_path,
-                config_path=args.config_path,
+                config_path=os.path.join(experiment_path, "config.yaml"),
                 checkpoint_paths=checkpoint_paths,
                 run_methods=["train", "post_process"],
                 stochastic_packages=["numpy", "torch", "random"],
