@@ -1,5 +1,6 @@
 from typing import Callable
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from rama import constants
@@ -78,3 +79,9 @@ class TwoLayerRegressionNetwork(nn.Module):
         y = self.hidden_to_output(x, self._task)
 
         return y
+
+    def checkpoint(self, save_path: str):
+        torch.save(self.state_dict(), save_path)
+
+    def load(self, load_path: str):
+        self.load_state_dict(torch.load(load_path))
