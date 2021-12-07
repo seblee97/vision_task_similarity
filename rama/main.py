@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     if args.mode == constants.SINGLE:
 
-        single_checkpoint_path = utils.setup_experiment(
+        _, single_checkpoint_path = utils.setup_experiment(
             mode="single", results_folder=results_folder, config_path=args.config_path
         )
 
@@ -56,6 +56,7 @@ if __name__ == "__main__":
             config_path=args.config_path,
             checkpoint_path=single_checkpoint_path,
             run_methods=["train", "post_process"],
+            stochastic_packages=["numpy", "torch", "random"],
         )
 
     elif args.mode in [constants.PARALLEL, constants.SERIAL, constants.CLUSTER]:
