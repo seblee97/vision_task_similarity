@@ -156,17 +156,16 @@ class Runner(base_runner.BaseRunner):
             self._train_test_loop(epoch=e, task_index=0)
 
         if self._early_stopping:
+            # load 'best' model from first task
             self._network.load(
                 load_path=os.path.join(
                     self._checkpoint_path,
                     f"network_{self._first_task_best_loss_index}.pt",
                 )
             )
-            for e in range(self._second_task_epochs):
-                self._train_test_loop(epoch=e, task_index=1)
-        else:
-            for e in range(self._second_task_epochs):
-                self._train_test_loop(epoch=e, task_index=1)
+
+        for e in range(self._second_task_epochs):
+            self._train_test_loop(epoch=e, task_index=1)
 
     def _pre_train_logging(self):
         node_norms = self._compute_node_norms()
@@ -236,6 +235,7 @@ class Runner(base_runner.BaseRunner):
                 )
                 if test_loss_0 < self._first_task_best_loss:
                     self._first_task_best_loss_index = epoch
+                    self._first_task_best_loss = test_loss_0
 
         base_logging_dict = {
             constants.EPOCH_LOSS: train_epoch_loss,
