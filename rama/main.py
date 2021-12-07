@@ -19,6 +19,9 @@ parser.add_argument(
     "--seeds", metavar="-S", default="[0]", help="list of seeds to run."
 )
 parser.add_argument("--config_changes", metavar="-CC", default="config_changes.py")
+parser.add_argument(
+    "--results_folder", default=constants.RESULTS, type=str, help="path to all results."
+)
 
 # cluster config
 parser.add_argument("--scheduler", type=str, help="univa or slurm", default="univa")
@@ -32,7 +35,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    results_folder = os.path.join(MAIN_FILE_PATH, constants.RESULTS)
+    results_folder = os.path.join(MAIN_FILE_PATH, args.results_folder)
 
     runner_class_name = "Runner"
     runner_module_name = "runner"
