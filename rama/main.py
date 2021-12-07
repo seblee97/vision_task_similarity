@@ -29,6 +29,7 @@ parser.add_argument("--num_cpus", type=int, default=4)
 parser.add_argument("--num_gpus", type=int, default=0)
 parser.add_argument("--mem", type=int, default=16)
 parser.add_argument("--timeout", type=str, default="")
+parser.add_argument("--cluster_debug", action="store_true")
 
 
 if __name__ == "__main__":
@@ -115,6 +116,7 @@ if __name__ == "__main__":
                 num_gpus=args.num_gpus,
                 memory=args.mem,
                 walltime=args.timeout,
+                cluster_debug=args.cluster_debug,
             )
 
     else:
