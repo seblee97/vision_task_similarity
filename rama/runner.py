@@ -139,13 +139,14 @@ class Runner(base_runner.BaseRunner):
     def _compute_correct(self, prediction, target):
         if self._loss_function_type == constants.MSE:
             if self._labels == [-1, 1]:
-                return (torch.sign(prediction) == target).item()
+                correct = (torch.sign(prediction) == target).item()
             elif self._labels == [0, 1]:
-                return (prediction > 0.5 == target).item()
+                correct = ((prediction.flatten() > 0.5) == target).item()
         elif self._loss_function_type == constants.CROSS_ENTROPY:
             softmax_prediction = F.softmax(prediction, dim=1)
             class_prediction = torch.argmax(softmax_prediction, dim=1)
-            return sum(class_prediction == target).item()
+            correct = sum(class_prediction == target).item()
+        return correct
 
     def train(self):
 
