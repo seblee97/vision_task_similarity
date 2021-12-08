@@ -157,6 +157,12 @@ class Runner(base_runner.BaseRunner):
 
         if self._early_stopping:
             # load 'best' model from first task
+            self._logger.info(
+                (
+                    "Early stopping: loading model from epoch "
+                    f"{self._first_task_best_loss_index}"
+                )
+            )
             self._network.load(
                 load_path=os.path.join(
                     self._checkpoint_path,
@@ -230,12 +236,14 @@ class Runner(base_runner.BaseRunner):
 
         if task_index == 0:
             if self._early_stopping:
-                self._network.checkpoint(
-                    save_path=os.path.join(self._checkpoint_path, f"network_{epoch}.pt")
-                )
                 if test_loss_0 < self._first_task_best_loss:
                     self._first_task_best_loss_index = epoch
                     self._first_task_best_loss = test_loss_0
+                    self._network.checkpoint(
+                        save_path=os.path.join(
+                            self._checkpoint_path, f"network_{epoch}.pt"
+                        )
+                    )
 
         base_logging_dict = {
             constants.EPOCH_LOSS: train_epoch_loss,
