@@ -12,7 +12,20 @@ from run_modes import base_runner
 
 
 class Runner(base_runner.BaseRunner):
-    def __init__(self, config, unique_id: str = ""):
+    """
+    Runner class for rama experiments.
+
+    Extends base runner from run_modes module.
+    """
+
+    def __init__(self, config, unique_id: str = "") -> None:
+        """
+        Class constructor.
+
+        Args:
+            config: configuration object.
+            unique_id: optional unique runner id.
+        """
         self._first_task_epochs = config.switch_epoch
         self._second_task_epochs = config.total_epochs - config.switch_epoch
 
@@ -36,7 +49,14 @@ class Runner(base_runner.BaseRunner):
 
         super().__init__(config=config, unique_id=unique_id)
 
-    def _get_data_columns(self):
+    def _get_data_columns(self) -> List[str]:
+        """Implements abstract method from parent base runner class.
+
+        Sets up logging columns.
+
+        Returns:
+            columns: list of strings denoting scalars to be logged.
+        """
         columns = [
             constants.EPOCH_LOSS,
             f"{constants.TEST}_{constants.LOSS}_0",
