@@ -190,7 +190,7 @@ class Runner(base_runner.BaseRunner):
                 )
             )
 
-        for e in range(self._second_task_epochs):
+        for e in range(self._first_task_epochs, self._second_task_epochs):
             self._train_test_loop(epoch=e, task_index=1)
 
     def _pre_train_logging(self):
