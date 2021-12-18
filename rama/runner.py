@@ -27,7 +27,7 @@ class Runner(base_runner.BaseRunner):
             unique_id: optional unique runner id.
         """
         self._first_task_epochs = config.switch_epoch
-        self._second_task_epochs = config.total_epochs - config.switch_epoch
+        self._total_epochs = config.total_epochs
 
         self._early_stopping = config.early_stopping
         self._first_task_best_loss = np.inf
@@ -190,7 +190,7 @@ class Runner(base_runner.BaseRunner):
                 )
             )
 
-        for e in range(self._first_task_epochs, self._second_task_epochs):
+        for e in range(self._first_task_epochs, self._total_epochs):
             self._train_test_loop(epoch=e, task_index=1)
 
     def _pre_train_logging(self):
