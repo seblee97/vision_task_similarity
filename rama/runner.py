@@ -91,6 +91,30 @@ class Runner(base_runner.BaseRunner):
                 )
             ]
         )
+        columns.extend(
+            [
+                f"{constants.NODE_DROPOUT_LOSS_DIFFS}_0_{i}"
+                for i in range(self._hidden_dimension)
+            ]
+        )
+        columns.extend(
+            [
+                f"{constants.NODE_DROPOUT_LOSS_DIFFS}_1_{i}"
+                for i in range(self._hidden_dimension)
+            ]
+        )
+        columns.extend(
+            [
+                f"{constants.NODE_DROPOUT_ACC_DIFFS}_0_{i}"
+                for i in range(self._hidden_dimension)
+            ]
+        )
+        columns.extend(
+            [
+                f"{constants.NODE_DROPOUT_ACC_DIFFS}_1_{i}"
+                for i in range(self._hidden_dimension)
+            ]
+        )
 
         return columns
 
@@ -203,6 +227,15 @@ class Runner(base_runner.BaseRunner):
         second_layer_derivatives_0 = self._second_layer_derivative(task_index=0)
         second_layer_derivatives_1 = self._second_layer_derivative(task_index=1)
 
+        (
+            node_dropout_loss_diffs_0,
+            node_dropout_acc_diffs_0,
+        ) = self._dropout_node_metrics(task_index=0)
+        (
+            node_dropout_loss_diffs_1,
+            node_dropout_acc_diffs_1,
+        ) = self._dropout_node_metrics(task_index=1)
+
         base_logging_dict = {constants.NODE_NORM_ENTROPY: node_norm_entropy}
 
         overlap_logging_dict = {
@@ -229,6 +262,24 @@ class Runner(base_runner.BaseRunner):
             for (i, j), derivative in np.ndenumerate(second_layer_derivatives_1)
         }
 
+        node_dropout_loss_diffs_0_logging_dict = {
+            f"{constants.NODE_DROPOUT_LOSS_DIFFS}_0_{i}": diff
+            for i, diff in enumerate(node_dropout_loss_diffs_0)
+        }
+        node_dropout_loss_diffs_1_logging_dict = {
+            f"{constants.NODE_DROPOUT_LOSS_DIFFS}_1_{i}": diff
+            for i, diff in enumerate(node_dropout_loss_diffs_1)
+        }
+
+        node_dropout_acc_diffs_0_logging_dict = {
+            f"{constants.NODE_DROPOUT_ACC_DIFFS}_0_{i}": diff
+            for i, diff in enumerate(node_dropout_acc_diffs_0)
+        }
+        node_dropout_acc_diffs_1_logging_dict = {
+            f"{constants.NODE_DROPOUT_ACC_DIFFS}_1_{i}": diff
+            for i, diff in enumerate(node_dropout_acc_diffs_1)
+        }
+
         logging_dict = {
             **base_logging_dict,
             **overlap_logging_dict,
@@ -236,6 +287,10 @@ class Runner(base_runner.BaseRunner):
             **fischer_1_logging_dict,
             **second_layer_derivatives_0_logging_dict,
             **second_layer_derivatives_1_logging_dict,
+            **node_dropout_loss_diffs_0_logging_dict,
+            **node_dropout_loss_diffs_1_logging_dict,
+            **node_dropout_acc_diffs_0_logging_dict,
+            **node_dropout_acc_diffs_1_logging_dict,
         }
 
         self._epoch_log(logging_dict=logging_dict, epoch=0)
@@ -253,6 +308,14 @@ class Runner(base_runner.BaseRunner):
         node_fischers_1 = self._compute_node_fischers(task_index=1)
         second_layer_derivatives_0 = self._second_layer_derivative(task_index=0)
         second_layer_derivatives_1 = self._second_layer_derivative(task_index=1)
+        (
+            node_dropout_loss_diffs_0,
+            node_dropout_acc_diffs_0,
+        ) = self._dropout_node_metrics(task_index=0)
+        (
+            node_dropout_loss_diffs_1,
+            node_dropout_acc_diffs_1,
+        ) = self._dropout_node_metrics(task_index=1)
 
         if task_index == 0:
             if self._early_stopping:
@@ -298,6 +361,24 @@ class Runner(base_runner.BaseRunner):
             for (i, j), derivative in np.ndenumerate(second_layer_derivatives_1)
         }
 
+        node_dropout_loss_diffs_0_logging_dict = {
+            f"{constants.NODE_DROPOUT_LOSS_DIFFS}_0_{i}": diff
+            for i, diff in enumerate(node_dropout_loss_diffs_0)
+        }
+        node_dropout_loss_diffs_1_logging_dict = {
+            f"{constants.NODE_DROPOUT_LOSS_DIFFS}_1_{i}": diff
+            for i, diff in enumerate(node_dropout_loss_diffs_1)
+        }
+
+        node_dropout_acc_diffs_0_logging_dict = {
+            f"{constants.NODE_DROPOUT_ACC_DIFFS}_0_{i}": diff
+            for i, diff in enumerate(node_dropout_acc_diffs_0)
+        }
+        node_dropout_acc_diffs_1_logging_dict = {
+            f"{constants.NODE_DROPOUT_ACC_DIFFS}_1_{i}": diff
+            for i, diff in enumerate(node_dropout_acc_diffs_1)
+        }
+
         logging_dict = {
             **base_logging_dict,
             **overlap_logging_dict,
@@ -305,6 +386,10 @@ class Runner(base_runner.BaseRunner):
             **fischer_1_logging_dict,
             **second_layer_derivatives_0_logging_dict,
             **second_layer_derivatives_1_logging_dict,
+            **node_dropout_loss_diffs_0_logging_dict,
+            **node_dropout_loss_diffs_1_logging_dict,
+            **node_dropout_acc_diffs_0_logging_dict,
+            **node_dropout_acc_diffs_1_logging_dict,
         }
 
         self._epoch_log(logging_dict=logging_dict, epoch=epoch)
@@ -406,6 +491,52 @@ class Runner(base_runner.BaseRunner):
                 node_fischers[node_index] += node_derivative.detach().item() ** 2 / size
 
         return node_fischers
+
+    def _dropout_node_metrics(self, task_index: int):
+        """Evaluate node importance by computing drop in
+        accuracy/rise in loss from dropping out node.
+        """
+        standard_test_loss = 0
+        standard_correct_instances = 0
+
+        masked_losses = np.zeros(self._hidden_dimension)
+        masked_correct_instances = np.zeros(self._hidden_dimension)
+
+        loader = self._test_dataloaders[task_index]
+        size = len(loader.dataset)
+
+        self._network.switch(new_task_index=task_index)
+
+        with torch.no_grad():
+            for batch, (x, y) in enumerate(loader):
+                prediction = self._network.test_forward(x=x, head_index=task_index)
+                loss = self._compute_loss(prediction, y)
+
+                standard_test_loss += loss.item()
+
+                correct = self._compute_correct(prediction, y)
+                standard_correct_instances += correct
+
+                for i in range(self._hidden_dimension):
+                    pre_activation = self._network.input_to_hidden(x)
+                    post_activation = self._network.activate(pre_activation)
+                    # mask post activation
+                    post_activation[:, i] = 0
+                    masked_prediction = self._network.hidden_to_output(
+                        post_activation, task_index
+                    )
+                    masked_loss = self._compute_loss(masked_prediction, y)
+                    masked_losses[i] += masked_loss.item()
+
+                    masked_correct = self._compute_correct(masked_prediction, y)
+                    masked_correct_instances[i] += masked_correct
+
+        masked_loss_diffs = masked_losses / size - standard_test_loss / size
+        masked_acc_diffs = (
+            masked_correct_instances / size - standard_correct_instances / size
+        )
+
+        return masked_loss_diffs, masked_acc_diffs
 
     def _second_layer_derivative(self, task_index: int) -> List:
         loader = self._test_dataloaders[task_index]
