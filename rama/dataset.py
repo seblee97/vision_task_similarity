@@ -49,7 +49,11 @@ class MixedFashionMNISTDataset(torch.utils.data.Dataset):
 class FashionMNIST:
 
     ALL_TRANSFORMS = torchvision.transforms.Compose(
-        [torchvision.transforms.Resize(32), torchvision.transforms.ToTensor()]
+        [
+            torchvision.transforms.Resize(32),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize((0.5,), (0.5)),
+        ]
     )
 
     FASHION_MNIST_TRAIN = torchvision.datasets.FashionMNIST(
