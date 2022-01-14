@@ -15,6 +15,7 @@ training:
     batch_size: 1
     loss_fn: mse
     early_stopping: False
+    ewc_importance: 100
 
 network:
     input_dimension: 1024
