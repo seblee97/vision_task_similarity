@@ -219,7 +219,7 @@ class Runner(base_runner.BaseRunner):
             )
 
         for e in range(self._first_task_epochs, self._total_epochs):
-            if self._ewc_importance:
+            if self._ewc_importance is not None:
                 ewc_module = ewc.EWC(device=self._device, importance=self._ewc_importance)
                 ewc_module.compute_first_task_importance(
                     network=self._network,
