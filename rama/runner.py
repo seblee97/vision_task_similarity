@@ -1,13 +1,13 @@
 import copy
 import itertools
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from rama import constants, dataset, network
+from rama import constants, dataset, network, ewc
 from run_modes import base_runner
 
 
@@ -46,6 +46,10 @@ class Runner(base_runner.BaseRunner):
 
         self._loss_function_type = config.loss_fn
         self._loss_function = self._setup_loss_function(config=config)
+
+        self._ewc_importance = config.ewc_importance
+
+        self._device = config.experiment_device
 
         super().__init__(config=config, unique_id=unique_id)
 
@@ -215,7 +219,15 @@ class Runner(base_runner.BaseRunner):
             )
 
         for e in range(self._first_task_epochs, self._total_epochs):
-            self._train_test_loop(epoch=e, task_index=1)
+            if self._ewc_importance:
+                ewc_module = ewc.EWC(device=self._device, importance=self._ewc_importance)
+                ewc_module.compute_first_task_importance(
+                    network=self._network,
+                    previous_task_index=0,
+                    loss_function=self._compute_loss,
+                    dataloader=self._test_dataloaders[0],
+                )
+            self._train_test_loop(epoch=e, task_index=1, ewc=ewc_module)
 
     def _pre_train_logging(self):
         node_norms = self._compute_node_norms()
@@ -295,7 +307,7 @@ class Runner(base_runner.BaseRunner):
 
         self._epoch_log(logging_dict=logging_dict, epoch=0)
 
-    def _train_test_loop(self, epoch: int, task_index: int):
+    def _train_test_loop(self, epoch: int, task_index: int, ewc: Optional[ewc.EWC] = None):
 
         train_epoch_loss = self._train_loop(task_index=task_index)
 
@@ -401,7 +413,7 @@ class Runner(base_runner.BaseRunner):
         for tag, scalar in logging_dict.items():
             self._data_logger.write_scalar(tag=tag, step=epoch, scalar=scalar)
 
-    def _train_loop(self, task_index: int):
+    def _train_loop(self, task_index: int, ewc_module: Optional[ewc.EWC] = None):
 
         self._network.switch(new_task_index=task_index)
 
@@ -414,6 +426,11 @@ class Runner(base_runner.BaseRunner):
             self._optimiser.zero_grad()
             prediction = self._network(x)
             loss = self._compute_loss(prediction, y)
+
+            if ewc_module is not None:
+                regularisation_term = ewc_module.penalty(self._network)
+                loss += regularisation_term
+
             loss.backward()
             self._optimiser.step()
             epoch_loss += loss.item()
