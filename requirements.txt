@@ -1,6 +1,4 @@
--e git://github.com/seblee97/config_package.git#egg=config-manager-seblee97
 -e git://github.com/seblee97/run_modes.git#egg=run_modes-seblee97
--e git://github.com/seblee97/data_logger.git#egg=data_logger-seblee97
 -e git://github.com/seblee97/plotter.git#egg=plotter-seblee97
 
 torch
