@@ -29,6 +29,10 @@ class TwoLayerRegressionNetwork(nn.Module):
         self._task = 0
 
     @property
+    def task(self):
+        return self._task 
+        
+    @property
     def layer_weights(self):
         return self._layer.state_dict()["weight"]
 
