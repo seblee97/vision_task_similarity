@@ -309,7 +309,7 @@ class Runner(base_runner.BaseRunner):
 
     def _train_test_loop(self, epoch: int, task_index: int, ewc: Optional[ewc.EWC] = None):
 
-        train_epoch_loss = self._train_loop(task_index=task_index)
+        train_epoch_loss = self._train_loop(task_index=task_index, ewc_module=ewc)
 
         test_loss_0, test_accuracy_0 = self._test_loop(task_index=0)
         test_loss_1, test_accuracy_1 = self._test_loop(task_index=1)
