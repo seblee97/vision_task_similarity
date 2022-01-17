@@ -227,6 +227,8 @@ class Runner(base_runner.BaseRunner):
                     loss_function=self._compute_loss,
                     dataloader=self._test_dataloaders[0],
                 )
+            else:
+                ewc_module = None
             self._train_test_loop(epoch=e, task_index=1, ewc=ewc_module)
 
     def _pre_train_logging(self):
