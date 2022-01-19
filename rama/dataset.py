@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 
 import torch
 import torchvision
@@ -8,8 +8,16 @@ from rama import constants
 DATA_PATH = constants.FMNIST_PATH
 
 
+def get_whitening_matrix(test_data_x):
+    # import pdb; pdb.set_trace()
+    mean_test_x = torch.mean(test_data_x, axis=0)
+    centered_test_x = test_data_x - mean_test_x
+    empirical_covariance = centered_test_x.T @ centered_test_x / len(test_data_x) # D x D
+    evals, evecs = torch.symeig(empirical_covariance, eigenvectors=True)
+    return evals, evecs
+
 class MixedFashionMNISTDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset_1, dataset_2, mixing: Union[float, int], mapping: Dict):
+    def __init__(self, dataset_1, dataset_2, mixing: Union[float, int], mapping: Dict, whitening_matrix: Optional[torch.Tensor] = None):
         self._dataset_1 = dataset_1
         self._dataset_2 = dataset_2
 
@@ -19,6 +27,8 @@ class MixedFashionMNISTDataset(torch.utils.data.Dataset):
 
         self._mixing = mixing
         self._mapping = mapping
+
+        self._whitening_matrix = whitening_matrix
 
     def __getitem__(
         self,
@@ -40,7 +50,9 @@ class MixedFashionMNISTDataset(torch.utils.data.Dataset):
             + (1 - self._mixing) * self._mapping[self._dataset_2[index][1]]
         )
 
-        return img, target
+        x = img.reshape(1, -1) @ self._whitening_matrix[1] / torch.sqrt(self._whitening_matrix[0] + 1e-5)
+
+        return x, target
 
     def __len__(self):
         return len(self._dataset_1)
@@ -132,6 +144,7 @@ class FashionMNISTSplitter:
         mixing: Union[float, int],
         label_1: int,
         label_2: int,
+        whiten: bool = True
     ):
         train_set_1, test_set_1 = cls.get_binary_classification_dataset(
             indices_1[0], indices_1[1]
@@ -149,14 +162,25 @@ class FashionMNISTSplitter:
 
         mapping = {**mapping_1, **mapping_2}
 
+        if whiten:
+            test_set_1_tensor = next(iter(torch.utils.data.DataLoader(test_set_1, batch_size=len(test_set_1))))[0]
+            test_set_1_tensor_flat = test_set_1_tensor.reshape(len(test_set_1_tensor), -1)
+            test_set_2_tensor = next(iter(torch.utils.data.DataLoader(test_set_2, batch_size=len(test_set_2))))[0]
+            test_set_2_tensor_flat = test_set_2_tensor.reshape(len(test_set_2_tensor), -1)
+            mixed_test_set_tensor = mixing * test_set_1_tensor_flat + (1 - mixing) * test_set_2_tensor_flat
+            whitening_matrix = get_whitening_matrix(mixed_test_set_tensor)
+        else:
+            whitening_matrix = None
+
         mixed_train_set = MixedFashionMNISTDataset(
             dataset_1=train_set_1,
             dataset_2=train_set_2,
             mixing=mixing,
             mapping=mapping,
+            whitening_matrix=whitening_matrix
         )
         mixed_test_set = MixedFashionMNISTDataset(
-            dataset_1=test_set_1, dataset_2=test_set_2, mixing=mixing, mapping=mapping
+            dataset_1=test_set_1, dataset_2=test_set_2, mixing=mixing, mapping=mapping, whitening_matrix=whitening_matrix
         )
         return mixed_train_set, mixed_test_set
 
