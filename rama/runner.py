@@ -132,6 +132,7 @@ class Runner(base_runner.BaseRunner):
             label_2=config.labels[1],
             batch_size=config.batch_size,
             shuffle=True,
+            whiten=False
         )
         mixed_train_2, mixed_test_2 = dataset.FashionMNISTSplitter.get_mixed_dataloader(
             config.indices[0],
@@ -141,6 +142,7 @@ class Runner(base_runner.BaseRunner):
             label_2=config.labels[1],
             batch_size=config.batch_size,
             shuffle=True,
+            whiten=True
         )
 
         train_dataloaders = [mixed_train_1, mixed_train_2]
