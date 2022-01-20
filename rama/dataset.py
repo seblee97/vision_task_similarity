@@ -194,6 +194,7 @@ class FashionMNISTSplitter:
         label_2: int,
         batch_size: int,
         shuffle: bool,
+        whiten: bool
     ):
         mixed_train_set, mixed_test_set = cls.get_mixed_dataset(
             indices_1=indices_1,
@@ -201,6 +202,7 @@ class FashionMNISTSplitter:
             mixing=mixing,
             label_1=label_1,
             label_2=label_2,
+            whiten=whiten
         )
         mixed_train_dataloader = torch.utils.data.DataLoader(
             mixed_train_set, batch_size=batch_size, shuffle=shuffle
