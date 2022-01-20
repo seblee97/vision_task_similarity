@@ -50,7 +50,10 @@ class MixedFashionMNISTDataset(torch.utils.data.Dataset):
             + (1 - self._mixing) * self._mapping[self._dataset_2[index][1]]
         )
 
-        x = img.reshape(1, -1) @ self._whitening_matrix[1] / torch.sqrt(self._whitening_matrix[0] + 1e-5)
+        if self._whitening_matrix is not None:
+            x = img.reshape(1, -1) @ self._whitening_matrix[1] / torch.sqrt(self._whitening_matrix[0] + 1e-5)
+        else:
+            x = img
 
         return x, target
 
