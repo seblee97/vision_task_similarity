@@ -18,7 +18,7 @@ parser.add_argument(
 parser.add_argument(
     "--seeds", metavar="-S", default="[0]", help="list of seeds to run."
 )
-parser.add_argument("--num_seeds", help="provide number of seeds in place of list of seeds.")
+parser.add_argument("--num_seeds", type=int, help="provide number of seeds in place of list of seeds.")
 parser.add_argument("--config_changes", metavar="-CC", default="config_changes.py")
 parser.add_argument(
     "--results_folder", default=constants.RESULTS, type=str, help="path to all results."
