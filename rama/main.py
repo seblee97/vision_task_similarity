@@ -18,6 +18,7 @@ parser.add_argument(
 parser.add_argument(
     "--seeds", metavar="-S", default="[0]", help="list of seeds to run."
 )
+parser.add_argument("--num_seeds", help="provide number of seeds in place of list of seeds.")
 parser.add_argument("--config_changes", metavar="-CC", default="config_changes.py")
 parser.add_argument(
     "--results_folder", default=constants.RESULTS, type=str, help="path to all results."
@@ -65,7 +66,10 @@ if __name__ == "__main__":
 
     elif args.mode in [constants.PARALLEL, constants.SERIAL, constants.CLUSTER]:
 
-        seeds = utils.process_seed_arguments(args.seeds)
+        if args.num_seeds is not None:
+            seeds = list(range(args.num_seeds))
+        else:
+            seeds = utils.process_seed_arguments(args.seeds)
 
         experiment_path, checkpoint_paths = utils.setup_experiment(
             mode="multi",
