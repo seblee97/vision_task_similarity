@@ -25,8 +25,12 @@ class RamaConfigTemplate:
                 types=[list],
                 requirements=[lambda x: all([isinstance(i, int) for i in x])],
             ),
+            config_field.Field(
+                name=constants.WHITENING,
+                types=[list],
+                requirements=[lambda x: all([isinstance(i, bool) for i in x])],
+            ),
         ],
-        # nested_templates=[_indices_template],
         level=[constants.TASKS],
     )
 
@@ -52,7 +56,9 @@ class RamaConfigTemplate:
                 requirements=[lambda x: x in [constants.CROSS_ENTROPY, constants.MSE]],
             ),
             config_field.Field(name=constants.EARLY_STOPPING, types=[bool]),
-            config_field.Field(name=constants.EWC_IMPORTANCE, types=[float, int, type(None)])
+            config_field.Field(
+                name=constants.EWC_IMPORTANCE, types=[float, int, type(None)]
+            ),
         ],
         level=[constants.TRAINING],
     )
