@@ -4,7 +4,6 @@ https://github.com/moskomule/ewc.pytorch
 """
 import copy
 
-from rama import constants
 from torch import nn
 
 
