@@ -7,22 +7,23 @@ tasks:
         - [2, 7]
     labels: [0, 1]
     mixing: [1, 0.5]
+    whitening: [True, True]
 
 training:
     total_epochs: 100
     switch_epoch: 50
-    learning_rate: 0.01
+    learning_rate: 0.001
     batch_size: 1
     loss_fn: mse
     early_stopping: False
-    ewc_importance: 100
+    ewc_importance:
 
 network:
     input_dimension: 1024
     hidden_dimension: 8
     output_dimension: 1
-    nonlinearity: relu
-    biases: False
+    nonlinearity: sigmoid
+    biases: True
 
 plotting:
     xlabel: epoch
