@@ -132,7 +132,7 @@ class Runner(base_runner.BaseRunner):
             label_2=config.labels[1],
             batch_size=config.batch_size,
             shuffle=True,
-            whiten=config.whitening[0]
+            whiten=config.whitening[0],
         )
         mixed_train_2, mixed_test_2 = dataset.FashionMNISTSplitter.get_mixed_dataloader(
             config.indices[0],
@@ -142,7 +142,7 @@ class Runner(base_runner.BaseRunner):
             label_2=config.labels[1],
             batch_size=config.batch_size,
             shuffle=True,
-            whiten=config.whitening[1]
+            whiten=config.whitening[1],
         )
 
         train_dataloaders = [mixed_train_1, mixed_train_2]
@@ -222,7 +222,9 @@ class Runner(base_runner.BaseRunner):
 
         for e in range(self._first_task_epochs, self._total_epochs):
             if self._ewc_importance is not None:
-                ewc_module = ewc.EWC(device=self._device, importance=self._ewc_importance)
+                ewc_module = ewc.EWC(
+                    device=self._device, importance=self._ewc_importance
+                )
                 ewc_module.compute_first_task_importance(
                     network=self._network,
                     previous_task_index=0,
@@ -311,7 +313,9 @@ class Runner(base_runner.BaseRunner):
 
         self._epoch_log(logging_dict=logging_dict, epoch=0)
 
-    def _train_test_loop(self, epoch: int, task_index: int, ewc: Optional[ewc.EWC] = None):
+    def _train_test_loop(
+        self, epoch: int, task_index: int, ewc: Optional[ewc.EWC] = None
+    ):
 
         train_epoch_loss = self._train_loop(task_index=task_index, ewc_module=ewc)
 
